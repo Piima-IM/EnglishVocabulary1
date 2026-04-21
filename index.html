@@ -51,8 +51,36 @@
       position: relative;
       box-shadow: inset 0 0 0 1px var(--stroke), var(--shadow);
       z-index: 1;
+      overflow: hidden; /* Чтобы свечение не выходило за края */
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
+.container:hover {
+  transform: translateY(-8px);
+}
+  .container::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 5px; /* Рамка чуть толще, чем у карточек */
+  background: radial-gradient(
+    500px circle at var(--main-mouse-x, 50%) var(--main-mouse-y, 50%),
+    rgba(124, 58, 237, 0.4),
+    rgba(37, 99, 235, 0.3) 40%,
+    transparent 80%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+  z-index: 3;
+}
 
+.container:hover::after {
+  opacity: 1;
+}
     h1 {
       margin: 10px 0 6px;
       text-align: center;
@@ -72,25 +100,55 @@
     }
 
     /* Базовый стиль карточки */
-    .player-card {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 16px 18px;
-      margin-bottom: 12px;
-      border-radius: 18px;
-      background: var(--card-strong);
-      border: 1px solid var(--stroke);
-      transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
-      opacity: 0;
-      transform: translateY(15px);
-    }
+.player-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  border-radius: 18px;
+  background: var(--card-strong);
+  border: 1px solid var(--stroke);
+  transition: transform 0.3s ease, box-shadow 0.3s ease; /* Плавное приподнятие */
+  opacity: 0;
+  transform: translateY(15px);
+  position: relative; /* Важно для позиционирования рамки */
+  overflow: hidden; /* Чтобы свечение не вылетало за границы */
+}
 
-    .player-card:hover {
-      transform: translateY(-5px) scale(1.01);
-      box-shadow: 0 15px 30px rgba(0,0,0,0.1);
-    }
+/* Эффект приподнятости при наведении */
+.player-card:hover {
+  transform: translateY(-3px) scale(1.02); /* Карточка "всплывает" */
+  box-shadow: 0 20px 40px rgba(124, 58, 237, 0.15);
+  z-index: 10;
+}
+
+/* Динамическая подсветка краев */
+.player-card::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 4px; /* Толщина рамки */
+  background: radial-gradient(
+    300px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(168, 85, 247, 0.6),
+    rgba(34, 197, 94, 0.4) 40%,
+    transparent 80%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.player-card:hover::after {
+  opacity: 1; /* Рамка видна только при наведении */
+}
+
 
     /* Подсветка групп победителей */
     .tier-1 {
@@ -240,6 +298,18 @@
 
       let lastScore = null;
       let currentRank = 0;
+// Находим основной контейнер
+const mainContainer = document.querySelector('.container');
+
+mainContainer.addEventListener('mousemove', (e) => {
+  const rect = mainContainer.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  // Используем уникальное имя переменной, чтобы не путать с карточками
+  mainContainer.style.setProperty('--main-mouse-x', `${x}px`);
+  mainContainer.style.setProperty('--main-mouse-y', `${y}px`);
+});
 
       playersArray.forEach((player, index) => {
         const pScore = Number(player.score) || 0;
@@ -269,7 +339,13 @@
 
         const card = document.createElement('div');
         card.className = 'player-card';
-        
+        card.onmousemove = (e) => {
+  const rect = card.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  card.style.setProperty('--mouse-x', `${x}px`);
+  card.style.setProperty('--mouse-y', `${y}px`);
+};
         // Присвоение иконки и класса подсветки
         let rankIcon = currentRank;
         if (currentRank === 1) {
